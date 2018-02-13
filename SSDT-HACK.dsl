@@ -530,7 +530,7 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
             }
         })
     }
-//XCMP
+//XCPM
     Method (_PR.CPU0._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
     {
         If (LNot (Arg2))
