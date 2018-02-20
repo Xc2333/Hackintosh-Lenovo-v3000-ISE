@@ -2,7 +2,7 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
-Change log：13/2/2018：
+Change log：13/2/2018
 
 •I have done this SSDT-HACK.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a    battery patch to SSDT-HACK at the moment.
 
