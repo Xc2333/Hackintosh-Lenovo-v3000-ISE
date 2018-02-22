@@ -3,12 +3,10 @@
 This repository is for hackintosh on Lenovo v3000.
 
 Change log：22/2/2018
-
 •Add SSDT-ASL0 to the SSDT-HACK.dsl to store the brightless after reboot.
 
 
 Change log：13/2/2018
-
 •I have done this SSDT-HACK.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a    battery patch to SSDT-HACK at the moment.
 
 •This SSDT-HACK.aml can fix Audio、HD5500 Graphics、USB has injected properly、Brightness、XCPM mode、OS check.
