@@ -4,6 +4,10 @@ This repository is for hackintosh on Lenovo v3000.
 
 Change log：2/22/2018
 
+•Update B0D3->HDAU patch.
+
+Change log：2/22/2018
+
 •Add SSDT-ASL0 to the SSDT-HACK.dsl to store the brightless after reboot.
 
 
