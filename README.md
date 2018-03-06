@@ -2,7 +2,7 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
-Change log：2/22/2018
+Change log：2/05/2018
 
 •Update B0D3->HDAU patch.
 
