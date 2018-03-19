@@ -2,6 +2,10 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
+Change log：3/19/2018
+
+•Update New batery patch,only use RECB/WECB method.
+ 
 Change log：3/05/2018
 
 •Update B0D3->HDAU patch.
