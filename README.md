@@ -2,6 +2,10 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
+Change log：4/02/2018
+
+•Update Clover 4423 and upload full EFI flie,update SSDT-ALL.dsl.
+
 Change log：3/19/2018
 
 •Update New batery patch,only use RECB/WECB method.
