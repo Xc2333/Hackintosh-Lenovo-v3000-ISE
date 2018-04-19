@@ -6,7 +6,7 @@ Change log：4/14/2018
 
 •Merge 2048M Graphics memory and 32M minStolenSize to one patch,now no need IntelGraphicsDVMTFixup.kext.
 
-•Note : this pathc just for after install, so it's batter to disable it within install.
+•Note : this patch just for after install, so it's batter to disable it within install.
 
 Change log：4/02/2018
 
