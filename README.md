@@ -5,7 +5,8 @@ This repository is for hackintosh on Lenovo v3000.
 Change log：4/14/2018
 
 •Merge 2048M Graphics memory and 32M minStolenSize to one patch,now no need IntelGraphicsDVMTFixup.kext.
-NOTE:Just for after install !
+
+•Note : this pathc just for after install, so it's batter to disable it within install.
 
 Change log：4/02/2018
 
