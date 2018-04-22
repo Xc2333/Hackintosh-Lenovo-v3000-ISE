@@ -30,9 +30,9 @@ Change log：2/22/2018
 
 Change log：2/13/2018
 
-•I have done this SSDT-HACK.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a    battery patch to SSDT-HACK at the moment.
+•I have done this SSDT-ALL.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a    battery patch to SSDT-ALL at the moment.
 
-•This SSDT-HACK.aml can fix Audio、HD5500 Graphics、USB has injected properly、Brightness、XCPM mode、OS check.
+•This SSDT-ALL.aml can fix Audio、HD5500 Graphics、USB has injected properly、Brightness、XCPM mode、OS check.
 
 •Note:I still use the RMCF to control these hotpatches,because it will be convenient for me to debug. 
 It is best to use it after the installation is completed.
