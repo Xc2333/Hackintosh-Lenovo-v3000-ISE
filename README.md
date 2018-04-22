@@ -2,6 +2,10 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
+Change log：4/22/2018
+
+•Update Clover 4444,AppleALC 1.2.6,now battery hotpatch coming.
+
 Change log：4/14/2018
 
 •Merge 2048M Graphics memory and 32M minStolenSize to one patch,now no need IntelGraphicsDVMTFixup.kext.
