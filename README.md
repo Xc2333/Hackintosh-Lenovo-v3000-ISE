@@ -4,7 +4,7 @@ This repository is for hackintosh on Lenovo v3000.
 
 Change log：4/22/2018
 
-•Update Clover 4444 and AppleALC 1.2.6,SSDT-ALL.dsl has updated also.Now the battery hotpatch coming,but not add to the SSDT-ALL as for it's stability.
+•Update Clover 4444 and AppleALC 1.2.6,SSDT-ALL.dsl has updated also.Now the battery hotpatch is coming,but not add to the SSDT-ALL as for it's stability.
 
 Change log：4/14/2018
 
