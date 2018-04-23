@@ -665,4 +665,3 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
         Return (Local0)
     }
 }
-
