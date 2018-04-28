@@ -30,7 +30,7 @@ Change log：2/22/2018
 
 Change log：2/13/2018
 
-•I have done this SSDT-ALL.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a    battery patch to SSDT-ALL at the moment.
+•I have done this SSDT-ALL.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a battery patch to SSDT-ALL at the moment.
 
 •This SSDT-ALL.aml can fix Audio、HD5500 Graphics、USB has injected properly、Brightness、XCPM mode、OS check.
 
