@@ -18,7 +18,7 @@
  *     Compiler ID      "INTL"
  *     Compiler Version 0x20161210 (538317328)
  */
-DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
+DefinitionBlock ("", "SSDT", 2, "ALL", "ALL", 0x00000000)
 {
     External (_PR_.CPU0, DeviceObj)    // (from opcode)
     External (_SB_.PCI0.HDAU, DeviceObj)    // (from opcode)
