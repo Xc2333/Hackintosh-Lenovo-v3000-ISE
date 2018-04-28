@@ -26,7 +26,7 @@ Change log：3/05/2018
 
 Change log：2/22/2018
 
-•Add SSDT-ASL0 to the SSDT-HACK.dsl to store the brightless after reboot.
+•Add SSDT-ASL0 to the SSDT-ALL.dsl to store the brightless after reboot.
 
 Change log：2/13/2018
 
