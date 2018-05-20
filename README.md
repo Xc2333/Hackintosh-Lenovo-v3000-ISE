@@ -4,41 +4,56 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
-Change log：5/20/2018
 
-•Update Clover 4480 、new ACPI files (BIOS version:B0CNA0WW)、remove hotpatch of ULAC replace by custom USBInjectAll.kext、drop CPU related tables by length.
+部件名称
+部件描述
+01.CPU
+Intel i7 5500U；主频：2.4GHz；最高频率：3；核心数：2；线程数：4；缓存：4M
+02.芯片组
+CPU中内置芯片组
+03.内存
+标配：DDR3L 4GB × 1；最大支持（仅供参考）：8GB × 2
+04.硬盘
+容量：500GB；硬盘转速：5400转（混合硬盘
+05.集成显卡
+Intel HD Graphics 5500
+06.独立显卡
+AMD R5 M330；显存容量：2GB
+07.屏幕
+屏幕尺寸：14.0英寸；屏幕显示比例：16:9；分辨率：1920×1080；屏幕类型：LED背光的液晶屏幕
+08.声卡
+Conexant Audio （不支持混音）
+09.内置麦克风
+内置麦克风
+12.读卡器
+2合1读卡器（SD/MMC）
+13.USB接口
+2个USB 2.0；1个USB 3.0
+14.E-SATA接口
+无
+15.VGA接口
+无
+16.HDMI接口
+有
+17.音频接口
+耳机及MIC二合一接口
+18.无线网卡
+Intel 3160 支持AC协议的无线网卡
+19.蓝牙
+BT4.0 位于无线网卡上
+20.网卡
+100/1000Mbps自适应网卡
+21.键盘
+联想高触感键盘
+22.外壳
+外壳主要材质：复合材质；外壳主要颜色：黑色
+23.摄像头
+30万像素摄像头
+24.音箱
+内置扬声器
+25.电池
+4芯 32Wh
+26.适配器
+65W适配器
 
-Change log：4/22/2018
 
-•Update Clover 4444 and AppleALC 1.2.6,SSDT-ALL.dsl has updated also.Now the battery hotpatch is coming,but not add to the SSDT-ALL as for it's stability.
-
-Change log：4/14/2018
-
-•Merge 2048M Graphics memory and 32M minStolenSize to one patch,now no need IntelGraphicsDVMTFixup.kext.
-
-•Note : this patch just for after install, so it's batter to disable it within install.
-
-Change log：4/02/2018
-
-•Update Clover 4423 and upload full EFI flie,update SSDT-ALL.dsl.
-
-Change log：3/19/2018
-
-•Update New batery patch,only use RECB/WECB method.
- 
-Change log：3/05/2018
-
-•Update B0D3->HDAU patch.
-
-Change log：2/22/2018
-
-•Add SSDT-ASL0 to the SSDT-ALL.dsl to store the brightless level after reboot.
-
-Change log：2/13/2018
-
-•I have done this SSDT-ALL.aml，now all DSDT patches can be replaced by this except battery patch，I'm not going to add a battery patch to SSDT-ALL at the moment.
-
-•This SSDT-ALL.aml can fix Audio、HD5500 Graphics、USB has injected properly、Brightness、XCPM mode、OS check.
-
-•Note:I still use the RMCF to control these hotpatches,because it will be convenient for me to debug. 
-It is best to use it after the installation is completed.
