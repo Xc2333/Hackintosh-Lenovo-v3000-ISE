@@ -1,25 +1,41 @@
 /*
  * Intel ACPI Component Architecture
- * AML/ASL+ Disassembler version 20180313 (64-bit version)(RM)
+ * AML/ASL+ Disassembler version 20180427 (64-bit version)(RM)
  * Copyright (c) 2000 - 2018 Intel Corporation
  * 
  * Disassembling to symbolic ASL+ operators
  *
- * Disassembly of SSDT-ALL.aml, Sun Apr 22 21:37:23 2018
+ * Disassembly of SSDT-ALL.aml, Sun May 20 20:28:18 2018
  *
  * Original Table Header:
  *     Signature        "SSDT"
- *     Length           0x00000647 (1607)
+ *     Length           0x000005A4 (1444)
  *     Revision         0x02
- *     Checksum         0x76
- *     OEM ID           "hack"
- *     OEM Table ID     "HACK"
+ *     Checksum         0x74
+ *     OEM ID           "ALL"
+ *     OEM Table ID     "ALL"
  *     OEM Revision     0x00000000 (0)
  *     Compiler ID      "INTL"
- *     Compiler Version 0x20180313 (538444563)
+ *     Compiler Version 0x20180427 (538444839)
  */
-DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
+DefinitionBlock ("", "SSDT", 2, "ALL", "ALL", 0x00000000)
 {
+    Method (XOSI, 1, NotSerialized)
+    {
+        Local0 = Package (0x08)
+            {
+                "Windows", 
+                "Windows 2001", 
+                "Windows 2001 SP2", 
+                "Windows 2006", 
+                "Windows 2006 SP1", 
+                "Windows 2006.1", 
+                "Windows 2009", 
+                "Windows 2012"
+            }
+        Return ((Ones != Match (Local0, MEQ, Arg0, MTR, Zero, Zero)))
+    }
+
     Method (_SB.PCI0.IGPU._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
     {
         If ((Arg2 == Zero))
@@ -30,7 +46,7 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
             })
         }
 
-        Return (Package (0x08)
+        Return (Package (0x0A)
         {
             "AAPL,slot-name", 
             Buffer (0x09)
@@ -54,6 +70,12 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
             Buffer (0x0A)
             {
                 "onboard-1"
+            }, 
+
+            "AAPL,ig-platform-id", 
+            Buffer (0x04)
+            {
+                 0x06, 0x00, 0x26, 0x16                         
             }
         })
     }
@@ -88,7 +110,7 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
             "name", 
             Buffer (0x13)
             {
-                "Conexant Cx20751/2"
+                "Conexant CX20751/2"
             }, 
 
             "model", 
@@ -190,7 +212,7 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
         })
     }
 
-    Method (_SB.PCI0.SAT0._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
+    Method (_SB.PCI0.SATA._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
     {
         If ((Arg2 == Zero))
         {
@@ -228,6 +250,61 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
         })
     }
 
+    Method (_SB.PCI0.IMEI._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
+    {
+        If ((Arg2 == Zero))
+        {
+            Return (Buffer (One)
+            {
+                 0x03                                           
+            })
+        }
+
+        Return (Package (0x08)
+        {
+            "AAPL,slot-name", 
+            Buffer (0x09)
+            {
+                "Built in"
+            }, 
+
+            "name", 
+            Buffer (0x15)
+            {
+                "AppleIntelIMEIDriver"
+            }, 
+
+            "model", 
+            Buffer (0x15)
+            {
+                "AppleIntelIMEIDriver"
+            }, 
+
+            "hda-gfx", 
+            Buffer (0x0A)
+            {
+                "onboard-1"
+            }
+        })
+    }
+
+    Method (_PR.CPU0._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
+    {
+        If (!Arg2)
+        {
+            Return (Buffer (One)
+            {
+                 0x03                                           
+            })
+        }
+
+        Return (Package (0x02)
+        {
+            "plugin-type", 
+            One
+        })
+    }
+
     Method (_SB.PCI0.PEG0.PEGP._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
     {
         If (!Arg2)
@@ -256,144 +333,6 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
         })
     }
 
-    Method (_PR.CPU0._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
-    {
-        If (!Arg2)
-        {
-            Return (Buffer (One)
-            {
-                 0x03                                           
-            })
-        }
-
-        Return (Package (0x02)
-        {
-            "plugin-type", 
-            One
-        })
-    }
-
-    Method (XOSI, 1, NotSerialized)
-    {
-        Local0 = Package (0x08)
-            {
-                "Windows", 
-                "Windows 2001", 
-                "Windows 2001 SP2", 
-                "Windows 2006", 
-                "Windows 2006 SP1", 
-                "Windows 2006.1", 
-                "Windows 2009", 
-                "Windows 2012"
-            }
-        Return ((Ones != Match (Local0, MEQ, Arg0, MTR, Zero, Zero)))
-    }
-
-    Device (UIAC)
-    {
-        Name (_HID, "UIA00000")  // _HID: Hardware ID
-        Name (RMCF, Package (0x02)
-        {
-            "XHC", 
-            Package (0x04)
-            {
-                "port-count", 
-                Buffer (0x04)
-                {
-                     0x0F, 0x00, 0x00, 0x00                         
-                }, 
-
-                "ports", 
-                Package (0x0E)
-                {
-                    "HS01", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        0x03, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x01, 0x00, 0x00, 0x00                         
-                        }
-                    }, 
-
-                    "HS02", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        0x03, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x02, 0x00, 0x00, 0x00                         
-                        }
-                    }, 
-
-                    "HS03", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        Zero, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x03, 0x00, 0x00, 0x00                         
-                        }
-                    }, 
-
-                    "HS04", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        0xFF, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x04, 0x00, 0x00, 0x00                         
-                        }
-                    }, 
-
-                    "HS06", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        0xFF, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x06, 0x00, 0x00, 0x00                         
-                        }
-                    }, 
-
-                    "HS07", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        0xFF, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x07, 0x00, 0x00, 0x00                         
-                        }
-                    }, 
-
-                    "SSP1", 
-                    Package (0x04)
-                    {
-                        "UsbConnector", 
-                        0x03, 
-                        "port", 
-                        Buffer (0x04)
-                        {
-                             0x0C, 0x00, 0x00, 0x00                         
-                        }
-                    }
-                }
-            }
-        })
-    }
-
     Device (_SB.ALS0)
     {
         Name (_HID, "ACPI0008")  // _HID: Hardware ID
@@ -409,4 +348,5 @@ DefinitionBlock ("", "SSDT", 2, "hack", "HACK", 0x00000000)
         })
     }
 }
+
 
