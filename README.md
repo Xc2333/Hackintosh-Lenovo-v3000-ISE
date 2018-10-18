@@ -5,6 +5,10 @@
 This repository is for hackintosh on Lenovo v3000.
 
 
+Change log：10/18/2018
+
+•Update EFI to 10.14+,Clover 4706, only use WhateverGreen.kext,all kext has been update to the newest, and other changes.
+
 Change log：5/20/2018
 
 •Update Clover 4480 、new ACPI files (BIOS version:B0CNA0WW)、remove hotpatch of ULAC replace by custom USBInjectAll.kext、drop CPU related tables by length.
