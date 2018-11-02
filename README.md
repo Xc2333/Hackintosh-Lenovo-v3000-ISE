@@ -5,6 +5,10 @@
 This repository is for hackintosh on Lenovo v3000.
 
 
+Change log：11/1/2018
+
+•Update EFI, Clover 4717, CX20751_2 audio layout-id ingect via Device Properties, acpi rename patches via RenameDevices, all kext has been update to the newest.
+
 Change log：10/18/2018
 
 •Update EFI to 10.14+,Clover 4706, only use WhateverGreen.kext,all kext has been update to the newest, and other changes.
