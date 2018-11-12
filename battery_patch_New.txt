@@ -1,8 +1,8 @@
 
 # RECB method
-into method label RE1B parent_label EC0 remove_entry;
-into method label RECB parent_label EC0 remove_entry;
-into device label EC0 insert
+into method label RE1B parent_label EC remove_entry;
+into method label RECB parent_label EC remove_entry;
+into device label EC insert
 begin
 Method (RE1B, 1, NotSerialized)\n
 {\n
@@ -29,9 +29,9 @@ Method (RECB, 2, Serialized)\n
 end;
 
 #WECB method
-into method label WE1B parent_label EC0 remove_entry;
-into method label WECB parent_label EC0 remove_entry;
-into device label EC0 insert
+into method label WE1B parent_label EC remove_entry;
+into method label WECB parent_label EC remove_entry;
+into device label EC insert
 begin
 Method (WE1B, 2, NotSerialized)\n
 {\n

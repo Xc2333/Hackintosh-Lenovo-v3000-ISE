@@ -5,13 +5,13 @@
  * 
  * Disassembling to symbolic ASL+ operators
  *
- * Disassembly of /Users/xc233/Desktop/patched/DSDT.aml, Fri Nov  2 13:36:36 2018
+ * Disassembly of DSDT.aml, Mon Nov 12 14:35:18 2018
  *
  * Original Table Header:
  *     Signature        "DSDT"
- *     Length           0x0000E921 (59681)
+ *     Length           0x0001010D (65805)
  *     Revision         0x02
- *     Checksum         0xA5
+ *     Checksum         0x5D **** Incorrect checksum, should be 0xF0
  *     OEM ID           "LENOVO"
  *     OEM Table ID     "CB-01   "
  *     OEM Revision     0x00000001 (1)
@@ -20,6 +20,33 @@
  */
 DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 {
+    /*
+     * iASL Warning: There were 16 external control methods found during
+     * disassembly, but only 15 were resolved (1 unresolved). Additional
+     * ACPI tables may be required to properly disassemble the code. This
+     * resulting disassembler output file may not compile because the
+     * disassembler did not know how many arguments to assign to the
+     * unresolved methods. Note: SSDTs can be dynamically loaded at
+     * runtime and may or may not be available via the host OS.
+     *
+     * To specify the tables needed to resolve external control method
+     * references, the -e option can be used to specify the filenames.
+     * Example iASL invocations:
+     *     iasl -e ssdt1.aml ssdt2.aml ssdt3.aml -d dsdt.aml
+     *     iasl -e dsdt.aml ssdt2.aml -d ssdt1.aml
+     *     iasl -e ssdt*.aml -d dsdt.aml
+     *
+     * In addition, the -fe option can be used to specify a file containing
+     * control method external declarations with the associated method
+     * argument counts. Each line of the file must be of the form:
+     *     External (<method pathname>, MethodObj, <argument count>)
+     * Invocation:
+     *     iasl -fe refs.txt -d dsdt.aml
+     *
+     * The following methods were unresolved and many not compile properly
+     * because the disassembler had to guess at the number of arguments
+     * required for each:
+     */
     External (_PR_.BGIA, FieldUnitObj)
     External (_PR_.BGMA, FieldUnitObj)
     External (_PR_.BGMS, FieldUnitObj)
@@ -31,9 +58,9 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
     External (_PR_.TRPF, FieldUnitObj)
     External (_SB_.PCCD, UnknownObj)
     External (_SB_.PCCD.PENB, UnknownObj)
-    External (_SB_.PCI0.B0D3.ABAR, FieldUnitObj)
-    External (_SB_.PCI0.B0D3.BARA, IntObj)
     External (_SB_.PCI0.EPON, MethodObj)    // 0 Arguments
+    External (_SB_.PCI0.HDAU.ABAR, FieldUnitObj)
+    External (_SB_.PCI0.HDAU.BARA, IntObj)
     External (_SB_.PCI0.IGPU.CBLV, FieldUnitObj)
     External (_SB_.PCI0.IGPU.CLID, FieldUnitObj)
     External (_SB_.PCI0.IGPU.DD1F, UnknownObj)
@@ -70,6 +97,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
     External (PS2X, MethodObj)    // 0 Arguments
     External (PS3X, MethodObj)    // 0 Arguments
     External (SGMD, FieldUnitObj)
+    External (XOSI, MethodObj)    // Warning: Unknown method, guessing 1 arguments
 
     OperationRegion (LFCN, SystemMemory, 0x9CDDAD98, 0xE9)
     Field (LFCN, AnyAcc, Lock, Preserve)
@@ -2647,7 +2675,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     }
                 }
 
-                Device (B0D3)
+                Device (HDAU)
                 {
                     Name (_ADR, 0x00030000)  // _ADR: Address
                 }
@@ -3775,7 +3803,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Method (_DSW, 3, NotSerialized)  // _DSW: Device Sleep Wake
             {
                 PMEE = Arg0
-                ^^LPCB.EC0.USBW = One
+                ^^LPCB.EC.USBW = One
             }
 
             Method (GPEH, 0, NotSerialized)
@@ -3852,24 +3880,200 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     {
                         Name (_ADR, 0x04)  // _ADR: Address
                         Alias (SBV1, SDGV)
+                        Method (XDSM, 4, Serialized)
+                        {
+                            If ((Arg0 == ToUUID ("a5fc708f-8775-4ba6-bd0c-ba90a1ec72f8")))
+                            {
+                                Switch (ToInteger (Arg2))
+                                {
+                                    Case (Zero)
+                                    {
+                                        If ((Arg1 == One))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x07                                             // .
+                                            })
+                                        }
+                                        Else
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+                                    }
+                                    Case (One)
+                                    {
+                                        If ((SDGV == 0xFF))
+                                        {
+                                            Return (Zero)
+                                        }
+                                        Else
+                                        {
+                                            Return (One)
+                                        }
+                                    }
+                                    Case (0x02)
+                                    {
+                                        Return (SDGV) /* \_SB_.PCI0.EH01.HUBN.PR01.PR14.SDGV */
+                                    }
+
+                                }
+                            }
+
+                            Return (Zero)
+                        }
                     }
 
                     Device (PR15)
                     {
                         Name (_ADR, 0x05)  // _ADR: Address
                         Alias (SBV2, SDGV)
+                        Method (XDSM, 4, Serialized)
+                        {
+                            If ((Arg0 == ToUUID ("a5fc708f-8775-4ba6-bd0c-ba90a1ec72f8")))
+                            {
+                                Switch (ToInteger (Arg2))
+                                {
+                                    Case (Zero)
+                                    {
+                                        If ((Arg1 == One))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x07                                             // .
+                                            })
+                                        }
+                                        Else
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+                                    }
+                                    Case (One)
+                                    {
+                                        If ((SDGV == 0xFF))
+                                        {
+                                            Return (Zero)
+                                        }
+                                        Else
+                                        {
+                                            Return (One)
+                                        }
+                                    }
+                                    Case (0x02)
+                                    {
+                                        Return (SDGV) /* \_SB_.PCI0.EH01.HUBN.PR01.PR15.SDGV */
+                                    }
+
+                                }
+                            }
+
+                            Return (Zero)
+                        }
                     }
 
                     Device (PR16)
                     {
                         Name (_ADR, 0x06)  // _ADR: Address
                         Alias (SBV1, SDGV)
+                        Method (XDSM, 4, Serialized)
+                        {
+                            If ((Arg0 == ToUUID ("a5fc708f-8775-4ba6-bd0c-ba90a1ec72f8")))
+                            {
+                                Switch (ToInteger (Arg2))
+                                {
+                                    Case (Zero)
+                                    {
+                                        If ((Arg1 == One))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x07                                             // .
+                                            })
+                                        }
+                                        Else
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+                                    }
+                                    Case (One)
+                                    {
+                                        If ((SDGV == 0xFF))
+                                        {
+                                            Return (Zero)
+                                        }
+                                        Else
+                                        {
+                                            Return (One)
+                                        }
+                                    }
+                                    Case (0x02)
+                                    {
+                                        Return (SDGV) /* \_SB_.PCI0.EH01.HUBN.PR01.PR16.SDGV */
+                                    }
+
+                                }
+                            }
+
+                            Return (Zero)
+                        }
                     }
 
                     Device (PR17)
                     {
                         Name (_ADR, 0x07)  // _ADR: Address
                         Alias (SBV2, SDGV)
+                        Method (XDSM, 4, Serialized)
+                        {
+                            If ((Arg0 == ToUUID ("a5fc708f-8775-4ba6-bd0c-ba90a1ec72f8")))
+                            {
+                                Switch (ToInteger (Arg2))
+                                {
+                                    Case (Zero)
+                                    {
+                                        If ((Arg1 == One))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x07                                             // .
+                                            })
+                                        }
+                                        Else
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+                                    }
+                                    Case (One)
+                                    {
+                                        If ((SDGV == 0xFF))
+                                        {
+                                            Return (Zero)
+                                        }
+                                        Else
+                                        {
+                                            Return (One)
+                                        }
+                                    }
+                                    Case (0x02)
+                                    {
+                                        Return (SDGV) /* \_SB_.PCI0.EH01.HUBN.PR01.PR17.SDGV */
+                                    }
+
+                                }
+                            }
+
+                            Return (Zero)
+                        }
                     }
 
                     Device (PR18)
@@ -3902,7 +4106,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Method (_DSW, 3, NotSerialized)  // _DSW: Device Sleep Wake
             {
                 PMEE = Arg0
-                ^^LPCB.EC0.USBW = One
+                ^^LPCB.EC.USBW = One
             }
 
             Method (GPEH, 0, NotSerialized)
@@ -3969,12 +4173,100 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     {
                         Name (_ADR, 0x02)  // _ADR: Address
                         Alias (SBV1, SDGV)
+                        Method (XDSM, 4, Serialized)
+                        {
+                            If ((Arg0 == ToUUID ("a5fc708f-8775-4ba6-bd0c-ba90a1ec72f8")))
+                            {
+                                Switch (ToInteger (Arg2))
+                                {
+                                    Case (Zero)
+                                    {
+                                        If ((Arg1 == One))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x07                                             // .
+                                            })
+                                        }
+                                        Else
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+                                    }
+                                    Case (One)
+                                    {
+                                        If ((SDGV == 0xFF))
+                                        {
+                                            Return (Zero)
+                                        }
+                                        Else
+                                        {
+                                            Return (One)
+                                        }
+                                    }
+                                    Case (0x02)
+                                    {
+                                        Return (SDGV) /* \_SB_.PCI0.EH02.HUBN.PR01.PR12.SDGV */
+                                    }
+
+                                }
+                            }
+
+                            Return (Zero)
+                        }
                     }
 
                     Device (PR13)
                     {
                         Name (_ADR, 0x03)  // _ADR: Address
                         Alias (SBV2, SDGV)
+                        Method (XDSM, 4, Serialized)
+                        {
+                            If ((Arg0 == ToUUID ("a5fc708f-8775-4ba6-bd0c-ba90a1ec72f8")))
+                            {
+                                Switch (ToInteger (Arg2))
+                                {
+                                    Case (Zero)
+                                    {
+                                        If ((Arg1 == One))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x07                                             // .
+                                            })
+                                        }
+                                        Else
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+                                    }
+                                    Case (One)
+                                    {
+                                        If ((SDGV == 0xFF))
+                                        {
+                                            Return (Zero)
+                                        }
+                                        Else
+                                        {
+                                            Return (One)
+                                        }
+                                    }
+                                    Case (0x02)
+                                    {
+                                        Return (SDGV) /* \_SB_.PCI0.EH02.HUBN.PR01.PR13.SDGV */
+                                    }
+
+                                }
+                            }
+
+                            Return (Zero)
+                        }
                     }
 
                     Device (PR14)
@@ -4048,7 +4340,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Method (_DSW, 3, NotSerialized)  // _DSW: Device Sleep Wake
             {
                 PMEE = Arg0
-                ^^LPCB.EC0.USBW = One
+                ^^LPCB.EC.USBW = One
             }
 
             Method (GPEH, 0, NotSerialized)
@@ -5055,6 +5347,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP01.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP01.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5186,6 +5569,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP02.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP02.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5317,6 +5791,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP03.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP03.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5448,6 +6013,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP04.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP04.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5579,6 +6235,100 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                If ((Arg1 == 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+
+                                    Return (OPTS) /* \_SB_.PCI0.RP05.OPTS */
+                                }
+                                Else
+                                {
+                                    Return (Zero)
+                                }
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 == 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 == 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP05.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5710,6 +6460,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP06.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP06.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5853,6 +6694,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP07.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP07.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -5984,6 +6916,97 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Zero
             })
             Name (OPTS, Zero)
+            Method (XDSM, 4, Serialized)
+            {
+                Switch (ToInteger (Arg0))
+                {
+                    Case (ToUUID ("e5c937d0-3553-4d7a-9117-ea4d19c3434d") /* Device Labeling Interface */){                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                OPTS = Zero
+                                If ((Arg1 >= 0x02))
+                                {
+                                    OPTS = One
+                                    If (LTRE)
+                                    {
+                                        OPTS |= 0x40
+                                    }
+
+                                    If (OBFF)
+                                    {
+                                        OPTS |= 0x10
+                                    }
+                                }
+
+                                Return (OPTS) /* \_SB_.PCI0.RP08.OPTS */
+                            }
+                            Case (0x04)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (OBFF)
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                    Else
+                                    {
+                                        Return (Buffer (0x10)
+                                        {
+                                            /* 0000 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // ........
+                                            /* 0008 */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                                        })
+                                    }
+                                }
+                            }
+                            Case (0x06)
+                            {
+                                If ((Arg1 >= 0x02))
+                                {
+                                    If (LTRE)
+                                    {
+                                        If (((LMSL == Zero) || (LNSL == Zero)))
+                                        {
+                                            If ((PCHS == One))
+                                            {
+                                                LMSL = 0x0846
+                                                LNSL = 0x0846
+                                            }
+                                            ElseIf ((PCHS == 0x02))
+                                            {
+                                                LMSL = 0x1003
+                                                LNSL = 0x1003
+                                            }
+                                        }
+
+                                        LTRV [Zero] = ((LMSL >> 0x0A) & 0x07)
+                                        LTRV [One] = (LMSL & 0x03FF)
+                                        LTRV [0x02] = ((LNSL >> 0x0A) & 0x07)
+                                        LTRV [0x03] = (LNSL & 0x03FF)
+                                        Return (LTRV) /* \_SB_.PCI0.RP08.LTRV */
+                                    }
+                                    Else
+                                    {
+                                        Return (Zero)
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+
+                Return (Buffer (One)
+                {
+                     0x00                                             // .
+                })
+            }
+
             Device (PXSX)
             {
                 Name (_ADR, Zero)  // _ADR: Address
@@ -6561,7 +7584,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
     Scope (_SB.PCI0.LPCB)
     {
-        Device (EC0)
+        Device (EC)
         {
             Name (_HID, EisaId ("PNP0C09") /* Embedded Controller Device */)  // _HID: Hardware ID
             Name (_UID, One)  // _UID: Unique ID
@@ -6583,7 +7606,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         0x01,               // Length
                         )
                 })
-                Return (BFFR) /* \_SB_.PCI0.LPCB.EC0_._CRS.BFFR */
+                Return (BFFR) /* \_SB_.PCI0.LPCB.EC__._CRS.BFFR */
             }
 
             Method (_STA, 0, NotSerialized)  // _STA: Status
@@ -6653,7 +7676,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Offset (0x12), 
                 FUSL,   8, 
                 FUSH,   8, 
-                WBTX,   64, 
+                FWBT,   64, 
                 Offset (0x5D), 
                 EXSI,   8, 
                 EXSB,   8, 
@@ -6662,7 +7685,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 SMST,   8, 
                 SMAD,   8, 
                 SMCM,   8, 
-                MDAX,   256, 
+                SMDA,   256, 
                 BCNT,   8, 
                 SMAA,   8, 
                 SAD0,   8, 
@@ -6789,22 +7812,16 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 B1MF,   3, 
                 Offset (0xC1), 
                 B1ST,   8, 
-                CA00,   8, 
-                CA01,   8, 
+                B1RC,   16, 
                 B1SN,   16, 
-                CB00,   8, 
-                CB01,   8, 
-                CE00,   8, 
-                CE01,   8, 
-                CD00,   8, 
-                CD01,   8, 
-                CF00,   8, 
-                CF01,   8, 
+                B1FV,   16, 
+                B1DV,   16, 
+                B1DC,   16, 
+                B1FC,   16, 
                 B1GS,   8, 
                 B1CT,   8, 
                 B1CR,   16, 
-                CG00,   8, 
-                CG01,   8, 
+                B1AC,   16, 
                 B1PC,   8, 
                 B1VL,   8, 
                 B1TM,   8, 
@@ -6911,7 +7928,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 {
                     If ((ECON == One))
                     {
-                        Local0 = BA1P /* \_SB_.PCI0.LPCB.EC0_.BA1P */
+                        Local0 = BA1P /* \_SB_.PCI0.LPCB.EC__.BA1P */
                         If ((Local0 & One))
                         {
                             Return (0x1F)
@@ -6933,18 +7950,18 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 {
                     If ((ECON == One))
                     {
-                        Local0 = B1B2 (CD00, CD01)
+                        Local0 = B1DC /* \_SB_.PCI0.LPCB.EC__.B1DC */
                         Local0 *= 0x0A
                         PBIF [One] = Local0
-                        Local0 = B1B2 (CF00, CF01)
+                        Local0 = B1FC /* \_SB_.PCI0.LPCB.EC__.B1FC */
                         Local0 *= 0x0A
                         PBIF [0x02] = Local0
-                        PBIF [0x04] = B1B2 (CE00, CE01)
+                        PBIF [0x04] = B1DV /* \_SB_.PCI0.LPCB.EC__.B1DV */
                         PBIF [0x09] = ""
                         PBIF [0x0B] = ""
                     }
 
-                    Return (PBIF) /* \_SB_.PCI0.LPCB.EC0_.BAT0.PBIF */
+                    Return (PBIF) /* \_SB_.PCI0.LPCB.EC__.BAT0.PBIF */
                 }
 
                 Name (OBST, Zero)
@@ -6957,7 +7974,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     If ((ECON == One))
                     {
                         Sleep (0x10)
-                        Local0 = B1ST /* \_SB_.PCI0.LPCB.EC0_.B1ST */
+                        Local0 = B1ST /* \_SB_.PCI0.LPCB.EC__.B1ST */
                         Local1 = DerefOf (PBST [Zero])
                         Switch ((Local0 & 0x07))
                         {
@@ -6981,7 +7998,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         }
 
                         Sleep (0x10)
-                        OBAC = B1B2 (CG00, CG01)
+                        OBAC = B1AC /* \_SB_.PCI0.LPCB.EC__.B1AC */
                         If ((OBST & One))
                         {
                             If ((OBAC != Zero))
@@ -6990,20 +8007,20 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             }
                         }
 
-                        OBPR = OBAC /* \_SB_.PCI0.LPCB.EC0_.BAT0.OBAC */
+                        OBPR = OBAC /* \_SB_.PCI0.LPCB.EC__.BAT0.OBAC */
                         Sleep (0x10)
-                        OBRC = B1B2 (CA00, CA01)
+                        OBRC = B1RC /* \_SB_.PCI0.LPCB.EC__.B1RC */
                         Sleep (0x10)
-                        OBPV = B1B2 (CB00, CB01)
+                        OBPV = B1FV /* \_SB_.PCI0.LPCB.EC__.B1FV */
                         OBRC *= 0x0A
                         OBPR = ((OBAC * OBPV) / 0x03E8)
-                        PBST [Zero] = OBST /* \_SB_.PCI0.LPCB.EC0_.BAT0.OBST */
-                        PBST [One] = OBPR /* \_SB_.PCI0.LPCB.EC0_.BAT0.OBPR */
-                        PBST [0x02] = OBRC /* \_SB_.PCI0.LPCB.EC0_.BAT0.OBRC */
-                        PBST [0x03] = OBPV /* \_SB_.PCI0.LPCB.EC0_.BAT0.OBPV */
+                        PBST [Zero] = OBST /* \_SB_.PCI0.LPCB.EC__.BAT0.OBST */
+                        PBST [One] = OBPR /* \_SB_.PCI0.LPCB.EC__.BAT0.OBPR */
+                        PBST [0x02] = OBRC /* \_SB_.PCI0.LPCB.EC__.BAT0.OBRC */
+                        PBST [0x03] = OBPV /* \_SB_.PCI0.LPCB.EC__.BAT0.OBPV */
                     }
 
-                    Return (PBST) /* \_SB_.PCI0.LPCB.EC0_.BAT0.PBST */
+                    Return (PBST) /* \_SB_.PCI0.LPCB.EC__.BAT0.PBST */
                 }
             }
 
@@ -7012,7 +8029,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Name (APFG, Zero)
             }
 
-            Scope (\_SB.PCI0.LPCB.EC0)
+            Scope (\_SB.PCI0.LPCB.EC)
             {
                 Device (VPC0)
                 {
@@ -7029,7 +8046,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     {
                         If ((OSYS == 0x07D9))
                         {
-                            Local0 = _VPC /* \_SB_.PCI0.LPCB.EC0_.VPC0._VPC */
+                            Local0 = _VPC /* \_SB_.PCI0.LPCB.EC__.VPC0._VPC */
                             If (ECON)
                             {
                                 If ((RP4D == Zero))
@@ -7071,21 +8088,21 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         }
 
                         APFG = One
-                        Return (_VPC) /* \_SB_.PCI0.LPCB.EC0_.VPC0._VPC */
+                        Return (_VPC) /* \_SB_.PCI0.LPCB.EC__.VPC0._VPC */
                     }
 
                     Method (VPCR, 1, Serialized)
                     {
                         If ((Arg0 == One))
                         {
-                            VPCD = VCMD /* \_SB_.PCI0.LPCB.EC0_.VCMD */
+                            VPCD = VCMD /* \_SB_.PCI0.LPCB.EC__.VCMD */
                         }
                         Else
                         {
-                            VPCD = VDAT /* \_SB_.PCI0.LPCB.EC0_.VDAT */
+                            VPCD = VDAT /* \_SB_.PCI0.LPCB.EC__.VDAT */
                         }
 
-                        Return (VPCD) /* \_SB_.PCI0.LPCB.EC0_.VPC0.VPCD */
+                        Return (VPCD) /* \_SB_.PCI0.LPCB.EC__.VPC0.VPCD */
                     }
 
                     Method (VPCW, 2, Serialized)
@@ -7257,22 +8274,22 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         {
                             If ((SMPR != Zero))
                             {
-                                FB1 = SMST /* \_SB_.PCI0.LPCB.EC0_.SMST */
+                                FB1 = SMST /* \_SB_.PCI0.LPCB.EC__.SMST */
                             }
                             Else
                             {
                                 BFWB = Arg0
-                                SMAD = FB2 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.FB2_ */
-                                SMCM = FB3 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.FB3_ */
-                                BCNT = FB5 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.FB5_ */
-                                Local0 = FB0 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.FB0_ */
+                                SMAD = FB2 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB2_ */
+                                SMCM = FB3 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB3_ */
+                                BCNT = FB5 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB5_ */
+                                Local0 = FB0 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB0_ */
                                 If (((Local0 & One) == Zero))
                                 {
-                                    WECB (0x64, 0x0100, FB4)
+                                    SMDA = FB4 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB4_ */
                                 }
 
                                 SMST = Zero
-                                SMPR = FB0 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.FB0_ */
+                                SMPR = FB0 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB0_ */
                                 Local1 = 0x03E8
                                 While (Local1)
                                 {
@@ -7284,13 +8301,13 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                                     }
                                 }
 
-                                Local0 = FB0 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.FB0_ */
+                                Local0 = FB0 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.FB0_ */
                                 If (((Local0 & One) != Zero))
                                 {
-                                    FB4 = RECB (0x64, 0x0100)
+                                    FB4 = SMDA /* \_SB_.PCI0.LPCB.EC__.SMDA */
                                 }
 
-                                FB1 = SMST /* \_SB_.PCI0.LPCB.EC0_.SMST */
+                                FB1 = SMST /* \_SB_.PCI0.LPCB.EC__.SMST */
                                 If (((Local1 == Zero) || !(SMST && 0x80)))
                                 {
                                     SMPR = Zero
@@ -7298,7 +8315,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                                 }
                             }
 
-                            Return (BFWB) /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHPF.BFWB */
+                            Return (BFWB) /* \_SB_.PCI0.LPCB.EC__.VPC0.MHPF.BFWB */
                         }
                     }
 
@@ -7309,7 +8326,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         {
                             Name (RETB, Buffer (0x0A){})
                             Name (BUF1, Buffer (0x08){})
-                            BUF1 = RECB (0x14, 0x40)
+                            BUF1 = FWBT /* \_SB_.PCI0.LPCB.EC__.FWBT */
                             CreateByteField (BUF1, Zero, FW0)
                             CreateByteField (BUF1, One, FW1)
                             CreateByteField (BUF1, 0x02, FW2)
@@ -7318,17 +8335,17 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             CreateByteField (BUF1, 0x05, FW5)
                             CreateByteField (BUF1, 0x06, FW6)
                             CreateByteField (BUF1, 0x07, FW7)
-                            RETB [Zero] = FUSL /* \_SB_.PCI0.LPCB.EC0_.FUSL */
-                            RETB [One] = FUSH /* \_SB_.PCI0.LPCB.EC0_.FUSH */
-                            RETB [0x02] = FW0 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW0_ */
-                            RETB [0x03] = FW1 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW1_ */
-                            RETB [0x04] = FW2 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW2_ */
-                            RETB [0x05] = FW3 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW3_ */
-                            RETB [0x06] = FW4 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW4_ */
-                            RETB [0x07] = FW5 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW5_ */
-                            RETB [0x08] = FW6 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW6_ */
-                            RETB [0x09] = FW7 /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.FW7_ */
-                            Return (RETB) /* \_SB_.PCI0.LPCB.EC0_.VPC0.MHIF.RETB */
+                            RETB [Zero] = FUSL /* \_SB_.PCI0.LPCB.EC__.FUSL */
+                            RETB [One] = FUSH /* \_SB_.PCI0.LPCB.EC__.FUSH */
+                            RETB [0x02] = FW0 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW0_ */
+                            RETB [0x03] = FW1 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW1_ */
+                            RETB [0x04] = FW2 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW2_ */
+                            RETB [0x05] = FW3 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW3_ */
+                            RETB [0x06] = FW4 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW4_ */
+                            RETB [0x07] = FW5 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW5_ */
+                            RETB [0x08] = FW6 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW6_ */
+                            RETB [0x09] = FW7 /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.FW7_ */
+                            Return (RETB) /* \_SB_.PCI0.LPCB.EC__.VPC0.MHIF.RETB */
                         }
                     }
 
@@ -7364,10 +8381,10 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                                  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
                             }
                         })
-                        DerefOf (GBUF [Zero]) [Zero] = B1CT /* \_SB_.PCI0.LPCB.EC0_.B1CT */
+                        DerefOf (GBUF [Zero]) [Zero] = B1CT /* \_SB_.PCI0.LPCB.EC__.B1CT */
                         DerefOf (GBUF [One]) [Zero] = Zero
                         Name (BUF1, Buffer (0x08){})
-                        BUF1 = RECB (0x14, 0x40)
+                        BUF1 = FWBT /* \_SB_.PCI0.LPCB.EC__.FWBT */
                         CreateByteField (BUF1, Zero, FW0)
                         CreateByteField (BUF1, One, FW1)
                         CreateByteField (BUF1, 0x02, FW2)
@@ -7376,16 +8393,16 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         CreateByteField (BUF1, 0x05, FW5)
                         CreateByteField (BUF1, 0x06, FW6)
                         CreateByteField (BUF1, 0x07, FW7)
-                        DerefOf (GBUF [0x02]) [Zero] = FW0 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW0_ */
-                        DerefOf (GBUF [0x02]) [One] = FW1 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW1_ */
-                        DerefOf (GBUF [0x02]) [0x02] = FW2 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW2_ */
-                        DerefOf (GBUF [0x02]) [0x03] = FW3 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW3_ */
-                        DerefOf (GBUF [0x02]) [0x04] = FW4 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW4_ */
-                        DerefOf (GBUF [0x02]) [0x05] = FW5 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW5_ */
-                        DerefOf (GBUF [0x02]) [0x06] = FW6 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW6_ */
-                        DerefOf (GBUF [0x02]) [0x07] = FW7 /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.FW7_ */
+                        DerefOf (GBUF [0x02]) [Zero] = FW0 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW0_ */
+                        DerefOf (GBUF [0x02]) [One] = FW1 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW1_ */
+                        DerefOf (GBUF [0x02]) [0x02] = FW2 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW2_ */
+                        DerefOf (GBUF [0x02]) [0x03] = FW3 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW3_ */
+                        DerefOf (GBUF [0x02]) [0x04] = FW4 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW4_ */
+                        DerefOf (GBUF [0x02]) [0x05] = FW5 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW5_ */
+                        DerefOf (GBUF [0x02]) [0x06] = FW6 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW6_ */
+                        DerefOf (GBUF [0x02]) [0x07] = FW7 /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.FW7_ */
                         DerefOf (GBUF [0x03]) [Zero] = Zero
-                        Return (GBUF) /* \_SB_.PCI0.LPCB.EC0_.VPC0.GBID.GBUF */
+                        Return (GBUF) /* \_SB_.PCI0.LPCB.EC__.VPC0.GBID.GBUF */
                     }
 
                     Name (APDT, Zero)
@@ -7450,32 +8467,32 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     {
                         If ((Arg0 == Zero))
                         {
-                            If ((B1B2 (CB00, CB01) == Zero))
+                            If ((B1FV == Zero))
                             {
                                 Return (Zero)
                             }
 
-                            If ((B1B2 (CG00, CG01) == Zero))
+                            If ((B1AC == Zero))
                             {
                                 Return (Zero)
                             }
 
-                            Local0 = B1B2 (CF00, CF01)
+                            Local0 = B1FC /* \_SB_.PCI0.LPCB.EC__.B1FC */
                             Local0 *= 0x0A
                             VBFC = Local0
-                            Local1 = B1B2 (CA00, CA01)
+                            Local1 = B1RC /* \_SB_.PCI0.LPCB.EC__.B1RC */
                             Local1 *= 0x0A
                             VBRC = Local1
                             If ((VBFC > VBRC))
                             {
-                                VBPV = B1B2 (CB00, CB01)
-                                VBAC = B1B2 (CG00, CG01)
+                                VBPV = B1FV /* \_SB_.PCI0.LPCB.EC__.B1FV */
+                                VBAC = B1AC /* \_SB_.PCI0.LPCB.EC__.B1AC */
                                 Local0 -= Local1
-                                Local1 = (VBAC * VBPV) /* \_SB_.PCI0.LPCB.EC0_.VPC0.VBPV */
+                                Local1 = (VBAC * VBPV)
                                 Local3 = (Local0 * 0x03E8)
-                                Local3 *= 0x3C
+                                Local3 = (Local3 * 0x3C)
                                 VBCT = (Local3 / Local1)
-                                Return (VBCT) /* \_SB_.PCI0.LPCB.EC0_.VPC0.VBCT */
+                                Return (VBCT) /* \_SB_.PCI0.LPCB.EC__.VPC0.VBCT */
                             }
                             Else
                             {
@@ -7612,7 +8629,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 If ((OSYS == 0x07D9))
                 {
                     GCBL ()
-                    Local0 = LCBV /* \_SB_.PCI0.LPCB.EC0_.LCBV */
+                    Local0 = LCBV /* \_SB_.PCI0.LPCB.EC__.LCBV */
                     If ((Local0 > 0x0A))
                     {
                         LCBV = 0x0A
@@ -7635,7 +8652,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 If ((OSYS == 0x07D9))
                 {
                     GCBL ()
-                    Local0 = LCBV /* \_SB_.PCI0.LPCB.EC0_.LCBV */
+                    Local0 = LCBV /* \_SB_.PCI0.LPCB.EC__.LCBV */
                     If ((Local0 < 0x0A))
                     {
                         Local0 += One
@@ -7678,7 +8695,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Method (_Q1D, 0, NotSerialized)  // _Qxx: EC Query
             {
                 P80H = 0x1D
-                Local0 = TLVL /* \_SB_.PCI0.LPCB.EC0_.TLVL */
+                Local0 = TLVL /* \_SB_.PCI0.LPCB.EC__.TLVL */
                 \_PR.CPU0._PPC = Local0
                 PNOT ()
             }
@@ -7835,59 +8852,6 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 P80H = 0x50
                 SMIC = 0x38
             }
-
-            Method (RE1B, 1, NotSerialized)
-            {
-                OperationRegion (ERAM, EmbeddedControl, Arg0, One)
-                Field (ERAM, ByteAcc, NoLock, Preserve)
-                {
-                    BYTE,   8
-                }
-
-                Return (BYTE) /* \_SB_.PCI0.LPCB.EC0_.RE1B.BYTE */
-            }
-
-            Method (RECB, 2, Serialized)
-            {
-                Arg1 >>= 0x03
-                Name (TEMP, Buffer (Arg1){})
-                Arg1 += Arg0
-                Local0 = Zero
-                While ((Arg0 < Arg1))
-                {
-                    TEMP [Local0] = RE1B (Arg0)
-                    Arg0++
-                    Local0++
-                }
-
-                Return (TEMP) /* \_SB_.PCI0.LPCB.EC0_.RECB.TEMP */
-            }
-
-            Method (WE1B, 2, NotSerialized)
-            {
-                OperationRegion (ERAM, EmbeddedControl, Arg0, One)
-                Field (ERAM, ByteAcc, NoLock, Preserve)
-                {
-                    BYTE,   8
-                }
-
-                BYTE = Arg1
-            }
-
-            Method (WECB, 3, Serialized)
-            {
-                Arg1 >>= 0x03
-                Name (TEMP, Buffer (Arg1){})
-                TEMP = Arg2
-                Arg1 += Arg0
-                Local0 = Zero
-                While ((Arg0 < Arg1))
-                {
-                    WE1B (Arg0, DerefOf (TEMP [Local0]))
-                    Arg0++
-                    Local0++
-                }
-            }
         }
 
         Scope (\_SB)
@@ -7907,7 +8871,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
                 Method (_PSR, 0, NotSerialized)  // _PSR: Power Source
                 {
-                    Return (^^PCI0.LPCB.EC0.ADPT) /* \_SB_.PCI0.LPCB.EC0_.ADPT */
+                    Return (^^PCI0.LPCB.EC.ADPT) /* \_SB_.PCI0.LPCB.EC__.ADPT */
                 }
 
                 Method (_PCL, 0, NotSerialized)  // _PCL: Power Consumer List
@@ -8021,16 +8985,42 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Name (_UID, Zero)  // _UID: Unique ID
             Name (BUF0, ResourceTemplate ()
             {
-                IRQNoFlags ()
-                    {0,8,11,15}
                 Memory32Fixed (ReadWrite,
                     0xFED00000,         // Address Base
                     0x00000400,         // Address Length
-                    )
+                    _Y13)
             })
-            Name (_STA, 0x0F)  // _STA: Status
-            Method (_CRS, 0, NotSerialized)  // _CRS: Current Resource Settings
+            Method (_STA, 0, NotSerialized)  // _STA: Status
             {
+                If (HPAE)
+                {
+                    Return (0x0F)
+                }
+
+                Return (Zero)
+            }
+
+            Method (_CRS, 0, Serialized)  // _CRS: Current Resource Settings
+            {
+                If (HPAE)
+                {
+                    CreateDWordField (BUF0, \_SB.PCI0.LPCB.HPET._Y13._BAS, HPT0)  // _BAS: Base Address
+                    If ((HPAS == One))
+                    {
+                        HPT0 = 0xFED01000
+                    }
+
+                    If ((HPAS == 0x02))
+                    {
+                        HPT0 = 0xFED02000
+                    }
+
+                    If ((HPAS == 0x03))
+                    {
+                        HPT0 = 0xFED03000
+                    }
+                }
+
                 Return (BUF0) /* \_SB_.PCI0.LPCB.HPET.BUF0 */
             }
         }
@@ -8142,6 +9132,8 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     0x01,               // Alignment
                     0x02,               // Length
                     )
+                IRQNoFlags ()
+                    {2}
             })
         }
 
@@ -8312,8 +9304,10 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     0x0070,             // Range Minimum
                     0x0070,             // Range Maximum
                     0x01,               // Alignment
-                    0x02,               // Length
+                    0x08,               // Length
                     )
+                IRQNoFlags ()
+                    {8}
             })
         }
 
@@ -8334,6 +9328,8 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     0x10,               // Alignment
                     0x04,               // Length
                     )
+                IRQNoFlags ()
+                    {0}
             })
         }
 
@@ -8449,19 +9445,19 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             0x03F8,             // Range Maximum
                             0x01,               // Alignment
                             0x08,               // Length
-                            _Y13)
-                        IRQNoFlags (_Y14)
+                            _Y14)
+                        IRQNoFlags (_Y15)
                             {4}
                     })
                     R07H = 0x03
                     If ((NATP && CMAP))
                     {
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y13._MIN, IOL0)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y14._MIN, IOL0)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x03, IOH0)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y13._MAX, IOL1)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y14._MAX, IOL1)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x05, IOH1)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y13._LEN, LEN0)  // _LEN: Length
-                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y14._INT, IRQW)  // _INT: Interrupts
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y14._LEN, LEN0)  // _LEN: Length
+                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.UAR3._CRS._Y15._INT, IRQW)  // _INT: Interrupts
                         IOH0 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
                         IOL0 = R61H /* \_SB_.PCI0.LPCB.N393.R61H */
                         IOH1 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
@@ -8628,19 +9624,19 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             0x02F8,             // Range Maximum
                             0x01,               // Alignment
                             0x08,               // Length
-                            _Y15)
-                        IRQNoFlags (_Y16)
+                            _Y16)
+                        IRQNoFlags (_Y17)
                             {3}
                     })
                     R07H = 0x02
                     If ((NATP && CMBP))
                     {
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y15._MIN, IOL0)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y16._MIN, IOL0)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x03, IOH0)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y15._MAX, IOL1)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y16._MAX, IOL1)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x05, IOH1)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y15._LEN, LEN0)  // _LEN: Length
-                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y16._INT, IRQW)  // _INT: Interrupts
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y16._LEN, LEN0)  // _LEN: Length
+                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.UAR4._CRS._Y17._INT, IRQW)  // _INT: Interrupts
                         IOH0 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
                         IOL0 = R61H /* \_SB_.PCI0.LPCB.N393.R61H */
                         IOH1 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
@@ -8846,18 +9842,18 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             0x0378,             // Range Maximum
                             0x01,               // Alignment
                             0x04,               // Length
-                            _Y17)
-                        IRQNoFlags (_Y18)
+                            _Y18)
+                        IRQNoFlags (_Y19)
                             {7}
                     })
                     If (((RF0H & 0xE0) == Zero))
                     {
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y17._MIN, IOL0)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y18._MIN, IOL0)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x03, IOH0)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y17._MAX, IOL1)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y18._MAX, IOL1)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x05, IOH1)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y17._LEN, LEN0)  // _LEN: Length
-                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y18._INT, IRQW)  // _INT: Interrupts
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y18._LEN, LEN0)  // _LEN: Length
+                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.LPT1._CRS._Y19._INT, IRQW)  // _INT: Interrupts
                         R07H = One
                         IOL0 = R61H /* \_SB_.PCI0.LPCB.N393.R61H */
                         IOH0 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
@@ -9039,18 +10035,18 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             0x0378,             // Range Maximum
                             0x01,               // Alignment
                             0x04,               // Length
-                            _Y19)
-                        IRQNoFlags (_Y1A)
+                            _Y1A)
+                        IRQNoFlags (_Y1B)
                             {7}
                     })
                     If (((RF0H & 0xE0) == 0x20))
                     {
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y19._MIN, IOL0)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y1A._MIN, IOL0)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x03, IOH0)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y19._MAX, IOL1)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y1A._MAX, IOL1)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x05, IOH1)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y19._LEN, LEN0)  // _LEN: Length
-                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y1A._INT, IRQW)  // _INT: Interrupts
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y1A._LEN, LEN0)  // _LEN: Length
+                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.PBI1._CRS._Y1B._INT, IRQW)  // _INT: Interrupts
                         R07H = One
                         IOL0 = R61H /* \_SB_.PCI0.LPCB.N393.R61H */
                         IOH0 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
@@ -9236,19 +10232,19 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             0x0378,             // Range Maximum
                             0x01,               // Alignment
                             0x08,               // Length
-                            _Y1B)
-                        IRQNoFlags (_Y1C)
+                            _Y1C)
+                        IRQNoFlags (_Y1D)
                             {7}
                     })
                     If ((((RF0H & 0xE0) == 0x60) || ((RF0H & 0xE0
                         ) == 0x40)))
                     {
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1B._MIN, IOL0)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1C._MIN, IOL0)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x03, IOH0)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1B._MAX, IOL1)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1C._MAX, IOL1)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x05, IOH1)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1B._LEN, LEN0)  // _LEN: Length
-                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1C._INT, IRQW)  // _INT: Interrupts
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1C._LEN, LEN0)  // _LEN: Length
+                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.PEP1._CRS._Y1D._INT, IRQW)  // _INT: Interrupts
                         R07H = One
                         IOL0 = R61H /* \_SB_.PCI0.LPCB.N393.R61H */
                         IOH0 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
@@ -9405,42 +10401,42 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                             0x0378,             // Range Maximum
                             0x01,               // Alignment
                             0x08,               // Length
-                            _Y1D)
+                            _Y1E)
                         IO (Decode16,
                             0x0778,             // Range Minimum
                             0x0778,             // Range Maximum
                             0x01,               // Alignment
                             0x08,               // Length
-                            _Y1E)
-                        IRQNoFlags (_Y1F)
+                            _Y1F)
+                        IRQNoFlags (_Y20)
                             {7}
-                        DMA (Compatibility, NotBusMaster, Transfer8_16, _Y20)
+                        DMA (Compatibility, NotBusMaster, Transfer8_16, _Y21)
                             {1}
                     })
                     If ((((RF0H & 0xE0) == 0xE0) || ((RF0H & 0xE0
                         ) == 0x80)))
                     {
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1D._MIN, IOL0)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1E._MIN, IOL0)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x03, IOH0)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1D._MAX, IOL1)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1E._MAX, IOL1)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x05, IOH1)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1D._LEN, LEN0)  // _LEN: Length
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1E._MIN, IOL2)  // _MIN: Minimum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1E._LEN, LEN0)  // _LEN: Length
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1F._MIN, IOL2)  // _MIN: Minimum Base Address
                         CreateByteField (BUF0, 0x0B, IOH2)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1E._MAX, IOL3)  // _MAX: Maximum Base Address
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1F._MAX, IOL3)  // _MAX: Maximum Base Address
                         CreateByteField (BUF0, 0x0D, IOH3)
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1E._LEN, LEN1)  // _LEN: Length
-                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1F._INT, IRQW)  // _INT: Interrupts
-                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y20._DMA, DMA0)  // _DMA: Direct Memory Access
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y1F._LEN, LEN1)  // _LEN: Length
+                        CreateWordField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y20._INT, IRQW)  // _INT: Interrupts
+                        CreateByteField (BUF0, \_SB.PCI0.LPCB.N393.PEC1._CRS._Y21._DMA, DMA0)  // _DMA: Direct Memory Access
                         R07H = One
                         IOL0 = R61H /* \_SB_.PCI0.LPCB.N393.R61H */
                         IOH0 = R60H /* \_SB_.PCI0.LPCB.N393.R60H */
                         IOL1 = IOL0 /* \_SB_.PCI0.LPCB.N393.PEC1._CRS.IOL0 */
                         IOH1 = IOH0 /* \_SB_.PCI0.LPCB.N393.PEC1._CRS.IOH0 */
                         IOL2 = IOL0 /* \_SB_.PCI0.LPCB.N393.PEC1._CRS.IOL0 */
-                        IOH2 = (0x04 + IOH0) /* \_SB_.PCI0.LPCB.N393.PEC1._CRS.IOH0 */
+                        IOH2 = (0x04 + IOH0)
                         IOL3 = IOL0 /* \_SB_.PCI0.LPCB.N393.PEC1._CRS.IOL0 */
-                        IOH3 = (0x04 + IOH0) /* \_SB_.PCI0.LPCB.N393.PEC1._CRS.IOH0 */
+                        IOH3 = (0x04 + IOH0)
                         LEN0 = 0x08
                         LEN1 = 0x08
                         Local0 = (R70H & 0x0F)
@@ -9941,6 +10937,92 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
                 Return (Zero)
             }
+
+            Method (XDSM, 4, Serialized)
+            {
+                If ((Arg0 == ToUUID ("5630831c-06c9-4856-b327-f5d32586e060")))
+                {
+                    If ((Zero == ToInteger (Arg1)))
+                    {
+                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                Return (Buffer (One)
+                                {
+                                     0x07                                             // .
+                                })
+                            }
+                            Case (One)
+                            {
+                                Local0 = DerefOf (Arg3 [Zero])
+                                If ((Local0 == One))
+                                {
+                                    If ((PCHS == One))
+                                    {
+                                        If ((BID == 0x43))
+                                        {
+                                            GL08 |= 0x04
+                                        }
+                                        Else
+                                        {
+                                            GL08 |= 0x40
+                                        }
+                                    }
+                                    Else
+                                    {
+                                        \_SB.WTGP (DFUP, One)
+                                    }
+                                }
+                                ElseIf ((PCHS == One))
+                                {
+                                    If ((BID == 0x43))
+                                    {
+                                        GL08 &= 0xFB
+                                    }
+                                    Else
+                                    {
+                                        GL08 &= 0xBF
+                                    }
+                                }
+                                Else
+                                {
+                                    \_SB.WTGP (DFUP, Zero)
+                                }
+
+                                Return (One)
+                            }
+                            Case (0x02)
+                            {
+                                If ((PCHS == One))
+                                {
+                                    If ((BID == 0x43))
+                                    {
+                                        Local0 = ((GL08 & 0x04) >> 0x02)
+                                    }
+                                    Else
+                                    {
+                                        Local0 = ((GL08 & 0x40) >> 0x06)
+                                    }
+                                }
+                                Else
+                                {
+                                    Local0 = \_SB.RDGP (DFUP)
+                                }
+
+                                Return (Local0)
+                            }
+
+                        }
+
+                        Return (Zero)
+                    }
+
+                    Return (Zero)
+                }
+
+                Return (Zero)
+            }
         }
     }
 
@@ -10026,109 +11108,101 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
     Method (_PTS, 1, NotSerialized)  // _PTS: Prepare To Sleep
     {
-        If ((Arg0 != 0x05))
+        P80D = Zero
+        P8XH (Zero, Arg0)
+        If ((Arg0 == One))
         {
-            P80D = Zero
-            P8XH (Zero, Arg0)
-            If ((Arg0 == One))
-            {
-                H2OP (0x51)
-            }
+            H2OP (0x51)
+        }
 
-            If ((Arg0 == 0x03))
-            {
-                H2OP (0x53)
-            }
+        If ((Arg0 == 0x03))
+        {
+            H2OP (0x53)
+        }
 
-            If ((Arg0 == 0x04))
-            {
-                H2OP (0x54)
-            }
+        If ((Arg0 == 0x04))
+        {
+            H2OP (0x54)
+        }
 
-            If ((Arg0 == 0x05))
-            {
-                H2OP (0x55)
-            }
+        If ((Arg0 == 0x05))
+        {
+            H2OP (0x55)
+        }
 
-            If ((TBTS == One))
-            {
-                Reset (WFEV)
-            }
+        If ((TBTS == One))
+        {
+            Reset (WFEV)
+        }
 
-            If (((OSYS == 0x07D9) && (ECON == One)))
+        If (((OSYS == 0x07D9) && (ECON == One)))
+        {
+            If ((APFG == One))
             {
-                If ((APFG == One))
+                If ((\_SB.PCI0.LPCB.EC.WLAN == One))
                 {
-                    If ((\_SB.PCI0.LPCB.EC0.WLAN == One))
-                    {
-                        CMWL = One
-                    }
-                    Else
-                    {
-                        CMWL = Zero
-                    }
-
-                    If ((\_SB.PCI0.LPCB.EC0.BLUE == One))
-                    {
-                        CMBL = One
-                    }
-                    Else
-                    {
-                        CMBL = Zero
-                    }
+                    CMWL = One
                 }
-            }
-
-            If ((DBGS == Zero))
-            {
-                RT10 = Zero
-                PME1 = 0x20
-                PME0 = One
-                PMS1 = 0x20
-                PMS0 = One
-            }
-
-            If (CondRefOf (\_SB.TPM.PTS))
-            {
-                \_SB.TPM.PTS (Arg0)
-            }
-
-            If ((((Arg0 == 0x03) || (Arg0 == 0x04)) || (Arg0 == 0x05)))
-            {
-                If ((PFLV == 0x02))
+                Else
                 {
-                    GP27 = One
+                    CMWL = Zero
                 }
-            }
 
-            If ((BID == 0x31))
-            {
-                \_SB.WTGP (0x3C, Zero)
-                \_SB.WTGP (0x54, Zero)
-            }
-
-            If ((((BID == 0x80) || (BID == 0x81)) || ((BID == 
-                0x82) || (BID == 0x83))))
-            {
-                \_SB.WTGP (0x3C, Zero)
-                \_SB.WTGP (0x54, Zero)
-            }
-
-            If ((((BID == 0x84) || (BID == 0x85)) || (BID == 0x86)))
-            {
-                \_SB.WTGP (0x3C, Zero)
-                \_SB.WTGP (0x54, Zero)
-            }
-
-            If ((BID == 0x31))
-            {
-                \_SB.WTGP (0x3A, Zero)
+                If ((\_SB.PCI0.LPCB.EC.BLUE == One))
+                {
+                    CMBL = One
+                }
+                Else
+                {
+                    CMBL = Zero
+                }
             }
         }
 
-        If ((0x05 == Arg0))
+        If ((DBGS == Zero))
         {
-            \_SB.PCI0.XHC.PMEE = Zero
+            RT10 = Zero
+            PME1 = 0x20
+            PME0 = One
+            PMS1 = 0x20
+            PMS0 = One
+        }
+
+        If (CondRefOf (\_SB.TPM.PTS))
+        {
+            \_SB.TPM.PTS (Arg0)
+        }
+
+        If ((((Arg0 == 0x03) || (Arg0 == 0x04)) || (Arg0 == 0x05)))
+        {
+            If ((PFLV == 0x02))
+            {
+                GP27 = One
+            }
+        }
+
+        If ((BID == 0x31))
+        {
+            \_SB.WTGP (0x3C, Zero)
+            \_SB.WTGP (0x54, Zero)
+        }
+
+        If ((((BID == 0x80) || (BID == 0x81)) || ((BID == 
+            0x82) || (BID == 0x83))))
+        {
+            \_SB.WTGP (0x3C, Zero)
+            \_SB.WTGP (0x54, Zero)
+        }
+
+        If ((((BID == 0x84) || (BID == 0x85)) || (BID == 0x86)))
+        {
+            \_SB.WTGP (0x3C, Zero)
+            \_SB.WTGP (0x54, Zero)
+        }
+
+        If ((BID == 0x31))
+        {
+            \_SB.WTGP (0x3A, Zero)
         }
     }
 
@@ -10165,7 +11239,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Local0 = 0x06
         }
 
-        \_SB.PCI0.LPCB.EC0.OSTY = Local0
+        \_SB.PCI0.LPCB.EC.OSTY = Local0
         If ((Arg0 == One))
         {
             H2OP (0xE1)
@@ -10198,10 +11272,10 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             }
         }
 
-        If ((((\_SB.PCI0.B0D3.ABAR & 0xFFFFC004) != 0xFFFFC004) && ((
-            \_SB.PCI0.B0D3.ABAR & 0xFFFFC000) != Zero)))
+        If ((((\_SB.PCI0.HDAU.ABAR & 0xFFFFC004) != 0xFFFFC004) && ((
+            \_SB.PCI0.HDAU.ABAR & 0xFFFFC000) != Zero)))
         {
-            \_SB.PCI0.B0D3.BARA = \_SB.PCI0.B0D3.ABAR /* External reference */
+            \_SB.PCI0.HDAU.BARA = \_SB.PCI0.HDAU.ABAR /* External reference */
         }
 
         If (NEXP)
@@ -10228,7 +11302,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             {
                 If (((Arg0 == 0x03) || (Arg0 == 0x04)))
                 {
-                    LIDS = \_SB.PCI0.LPCB.EC0.LSTE
+                    LIDS = \_SB.PCI0.LPCB.EC.LSTE
                     If (IGDS)
                     {
                         If ((LIDS == Zero))
@@ -10548,29 +11622,29 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
         Method (_INI, 0, Serialized)  // _INI: Initialize
         {
             OSYS = 0x07D9
-            If (CondRefOf (\_OSI, Local0))
+            If (CondRefOf (\XOSI, Local0))
             {
-                If (_OSI ("Linux"))
+                If (XOSI ("Linux"))
                 {
                     OSYS = 0x03E8
                 }
 
-                If (_OSI ("Windows 2009"))
+                If (XOSI ("Windows 2009"))
                 {
                     OSYS = 0x07D9
                 }
 
-                If ((_OSI ("Darwin") || _OSI ("Windows 2012")))
+                If (XOSI ("Windows 2012"))
                 {
                     OSYS = 0x07DC
                 }
 
-                If (_OSI ("Windows 2013"))
+                If (XOSI ("Windows 2013"))
                 {
                     OSYS = 0x07DD
                 }
 
-                If (_OSI ("Windows 2015"))
+                If (XOSI ("Windows 2015"))
                 {
                     OSYS = 0x07DF
                 }
@@ -10709,7 +11783,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                         }
                     }
 
-                    If ((_OSI ("Windows 2013") || _OSI ("Windows 2015")))
+                    If ((XOSI ("Windows 2013") || XOSI ("Windows 2015")))
                     {
                         CAP0 |= 0x04
                         OSCI = STS0 /* \_SB_._OSC.STS0 */
@@ -10760,7 +11834,7 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
             Name (_HID, "ACPI000C" /* Processor Aggregator Device */)  // _HID: Hardware ID
             Method (_STA, 0, NotSerialized)  // _STA: Status
             {
-                If (_OSI ("Processor Aggregator Device"))
+                If (XOSI ("Processor Aggregator Device"))
                 {
                     Return (0x0F)
                 }
@@ -10793,14 +11867,10 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Memory32Fixed (ReadWrite,
                     0x00000000,         // Address Base
                     0x00004000,         // Address Length
-                    _Y21)
+                    _Y22)
                 Memory32Fixed (ReadWrite,
                     0x00000000,         // Address Base
                     0x00008000,         // Address Length
-                    _Y24)
-                Memory32Fixed (ReadWrite,
-                    0x00000000,         // Address Base
-                    0x00001000,         // Address Length
                     _Y25)
                 Memory32Fixed (ReadWrite,
                     0x00000000,         // Address Base
@@ -10808,8 +11878,12 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                     _Y26)
                 Memory32Fixed (ReadWrite,
                     0x00000000,         // Address Base
-                    0x00000000,         // Address Length
+                    0x00001000,         // Address Length
                     _Y27)
+                Memory32Fixed (ReadWrite,
+                    0x00000000,         // Address Base
+                    0x00000000,         // Address Length
+                    _Y28)
                 Memory32Fixed (ReadWrite,
                     0xFED20000,         // Address Base
                     0x00020000,         // Address Length
@@ -10833,29 +11907,29 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
                 Memory32Fixed (ReadWrite,
                     0x00000000,         // Address Base
                     0x00010000,         // Address Length
-                    _Y22)
+                    _Y23)
                 Memory32Fixed (ReadWrite,
                     0x00000000,         // Address Base
                     0x00010000,         // Address Length
-                    _Y23)
+                    _Y24)
             })
             Method (_CRS, 0, Serialized)  // _CRS: Current Resource Settings
             {
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y21._BAS, RBR0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y22._BAS, RBR0)  // _BAS: Base Address
                 RBR0 = (^^LPCB.RCBA << 0x0E)
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y22._BAS, SNR0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y23._BAS, SNR0)  // _BAS: Base Address
                 SNR0 = SRMB /* \SRMB */
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y23._BAS, XWT0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y24._BAS, XWT0)  // _BAS: Base Address
                 XWT0 = XWMB /* \XWMB */
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y24._BAS, MBR0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y25._BAS, MBR0)  // _BAS: Base Address
                 MBR0 = GMHB ()
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y25._BAS, DBR0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y26._BAS, DBR0)  // _BAS: Base Address
                 DBR0 = GDMB ()
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y26._BAS, EBR0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y27._BAS, EBR0)  // _BAS: Base Address
                 EBR0 = GEPB ()
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y27._BAS, XBR0)  // _BAS: Base Address
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y28._BAS, XBR0)  // _BAS: Base Address
                 XBR0 = GPCB ()
-                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y27._LEN, XSZ0)  // _LEN: Length
+                CreateDWordField (BUF0, \_SB.PCI0.PDRC._Y28._LEN, XSZ0)  // _LEN: Length
                 XSZ0 = GPCL ()
                 Return (BUF0) /* \_SB_.PCI0.PDRC.BUF0 */
             }
@@ -14483,6 +15557,302 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
                 Return (Zero)
             }
+
+            Method (XDSM, 4, Serialized)
+            {
+                If ((Arg0 == ToUUID ("b8febfe0-baf8-454b-aecd-49fb91137b21")))
+                {
+                    If ((Arg2 == Zero))
+                    {
+                        Return (Buffer (One)
+                        {
+                             0x07                                             // .
+                        })
+                    }
+
+                    If ((Arg2 == One))
+                    {
+                        PEPP = One
+                        Return (0x0F)
+                    }
+
+                    If ((Arg2 == 0x02))
+                    {
+                        If ((Arg1 == Zero))
+                        {
+                            Switch (PEPY)
+                            {
+                                Case (One)
+                                {
+                                    Return (Package (0x02)
+                                    {
+                                        One, 
+                                        Package (0x01)
+                                        {
+                                            "\\_SB.PCI0.IGPU"
+                                        }
+                                    })
+                                }
+                                Case (0x02)
+                                {
+                                    Return (Package (0x02)
+                                    {
+                                        One, 
+                                        Package (0x01)
+                                        {
+                                            "\\_SB.PCI0.SATA.PRT1"
+                                        }
+                                    })
+                                }
+                                Case (0x03)
+                                {
+                                    Return (DEVS) /* \_SB_.PEPD.DEVS */
+                                }
+                                Default
+                                {
+                                    Return (Package (0x01)
+                                    {
+                                        Zero
+                                    })
+                                }
+
+                            }
+                        }
+
+                        If ((Arg1 == One))
+                        {
+                            If (!(PEPY & One))
+                            {
+                                DerefOf (DEVX [Zero]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x02))
+                            {
+                                DerefOf (DEVX [One]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x04))
+                            {
+                                DerefOf (DEVX [0x02]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x08))
+                            {
+                                DerefOf (DEVX [0x03]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x10))
+                            {
+                                DerefOf (DEVX [0x04]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x20))
+                            {
+                                DerefOf (DEVX [0x05]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x40))
+                            {
+                                DerefOf (DEVX [0x06]) [One] = Zero
+                            }
+
+                            If (!(PEPY & 0x80))
+                            {
+                                DerefOf (DEVX [0x07]) [One] = Zero
+                            }
+
+                            Return (DEVX) /* \_SB_.PEPD.DEVX */
+                        }
+                    }
+                }
+
+                If ((Arg0 == ToUUID ("c4eb40a0-6cd2-11e2-bcfd-0800200c9a66")))
+                {
+                    If ((Arg2 == Zero))
+                    {
+                        Return (Buffer (One)
+                        {
+                             0x07                                             // .
+                        })
+                    }
+
+                    If ((Arg2 == One))
+                    {
+                        If (((PEPC & 0x03) == One))
+                        {
+                            If ((SPST & One))
+                            {
+                                DerefOf (DEVY [0x06]) [One] = One
+                            }
+
+                            If ((SPST & 0x02))
+                            {
+                                DerefOf (DEVY [0x07]) [One] = One
+                            }
+
+                            If ((SPST & 0x04))
+                            {
+                                DerefOf (DEVY [0x08]) [One] = One
+                            }
+
+                            If ((SPST & 0x08))
+                            {
+                                DerefOf (DEVY [0x09]) [One] = One
+                            }
+
+                            If (^^PCI0.RP01.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x1A]) [One] = One
+                            }
+
+                            If (^^PCI0.RP02.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x1B]) [One] = One
+                            }
+
+                            If (^^PCI0.RP03.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x1C]) [One] = One
+                            }
+
+                            If (^^PCI0.RP04.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x1D]) [One] = One
+                            }
+
+                            If (^^PCI0.RP05.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x1E]) [One] = One
+                            }
+
+                            If (^^PCI0.RP06.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x1F]) [One] = One
+                            }
+
+                            If (^^PCI0.RP07.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x20]) [One] = One
+                            }
+
+                            If (^^PCI0.RP08.PXSX.PAHC ())
+                            {
+                                DerefOf (DEVY [0x21]) [One] = One
+                            }
+                        }
+
+                        If (((PEPC & 0x03) == 0x02))
+                        {
+                            If ((SPST & 0x0F))
+                            {
+                                DerefOf (DEVY [0x05]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP01.PXSX.PAHC () || ^^PCI0.RP01.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x12]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP02.PXSX.PAHC () || ^^PCI0.RP02.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x13]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP03.PXSX.PAHC () || ^^PCI0.RP03.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x14]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP04.PXSX.PAHC () || ^^PCI0.RP04.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x15]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP05.PXSX.PAHC () || ^^PCI0.RP05.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x16]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP06.PXSX.PAHC () || ^^PCI0.RP06.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x17]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP07.PXSX.PAHC () || ^^PCI0.RP07.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x18]) [One] = One
+                            }
+
+                            If ((^^PCI0.RP08.PXSX.PAHC () || ^^PCI0.RP08.PXSX.PNVM ()))
+                            {
+                                DerefOf (DEVY [0x19]) [One] = One
+                            }
+                        }
+
+                        If (((PEPC & 0x04) == Zero))
+                        {
+                            DerefOf (DEVY [0x0A]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x08) == Zero))
+                        {
+                            DerefOf (DEVY [0x0B]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x10) == Zero))
+                        {
+                            DerefOf (DEVY [0x0C]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x20) == Zero))
+                        {
+                            DerefOf (DEVY [0x0D]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x40) == Zero))
+                        {
+                            DerefOf (DEVY [0x0E]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x80) == Zero))
+                        {
+                            DerefOf (DEVY [0x0F]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x0100) == Zero))
+                        {
+                            DerefOf (DEVY [0x10]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x0200) == Zero))
+                        {
+                            DerefOf (DEVY [0x11]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x1000) == Zero))
+                        {
+                            DerefOf (DEVY [Zero]) [One] = Zero
+                            DerefOf (DEVY [One]) [One] = Zero
+                            DerefOf (DEVY [0x02]) [One] = Zero
+                            DerefOf (DEVY [0x03]) [One] = Zero
+                        }
+
+                        If (((PEPC & 0x2000) == Zero))
+                        {
+                            DerefOf (DEVY [0x04]) [One] = Zero
+                        }
+
+                        Return (DEVY) /* \_SB_.PEPD.DEVY */
+                    }
+
+                    If ((Arg2 == 0x02))
+                    {
+                        Return (BCCD) /* \_SB_.PEPD.BCCD */
+                    }
+                }
+
+                Return (One)
+            }
         }
     }
 
@@ -14652,6 +16022,82 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
         {
             Scope (PRT2)
             {
+                Method (XDSM, 4, Serialized)
+                {
+                    If ((Arg0 == ToUUID ("bdfaef30-aebb-11de-8a39-0800200c9a66")))
+                    {
+                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                Switch (ToInteger (Arg1))
+                                {
+                                    Case (One)
+                                    {
+                                        If ((PFLV == 0x02))
+                                        {
+                                            Return (Buffer (One)
+                                            {
+                                                 0x00                                             // .
+                                            })
+                                        }
+
+                                        Return (Buffer (One)
+                                        {
+                                             0x0F                                             // .
+                                        })
+                                    }
+                                    Default
+                                    {
+                                        Return (Buffer (One)
+                                        {
+                                             0x00                                             // .
+                                        })
+                                    }
+
+                                }
+                            }
+                            Case (One)
+                            {
+                                Return (One)
+                            }
+                            Case (0x02)
+                            {
+                                GPE3 = Zero
+                                If (((GL00 & 0x08) == 0x08))
+                                {
+                                    GIV0 |= 0x08
+                                }
+                                Else
+                                {
+                                    GIV0 &= 0xF7
+                                }
+
+                                GL08 &= 0xEF
+                                Sleep (0xC8)
+                                GPS3 = One
+                                GPE3 = One
+                                Return (One)
+                            }
+                            Case (0x03)
+                            {
+                                GPE3 = Zero
+                                GPS3 = One
+                                GL08 |= 0x10
+                                Return (One)
+                            }
+                            Default
+                            {
+                                Return (Zero)
+                            }
+
+                        }
+                    }
+                    Else
+                    {
+                        Return (Zero)
+                    }
+                }
             }
         }
 
@@ -16019,6 +17465,92 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
                     Return (Zero)
                 }
+
+                Method (XDSM, 4, Serialized)
+                {
+                    If ((Arg0 == ToUUID ("f5cf0ff7-5d60-4842-82c0-fa1a61d873f2")))
+                    {
+                        Switch (ToInteger (Arg2))
+                        {
+                            Case (Zero)
+                            {
+                                If ((ToInteger (Arg1) == Zero))
+                                {
+                                    Return (Buffer (One)
+                                    {
+                                         0x07                                             // .
+                                    })
+                                }
+
+                                Return (Buffer (One)
+                                {
+                                     0x00                                             // .
+                                })
+                            }
+                            Case (One)
+                            {
+                                If ((DerefOf (Arg3 [Zero]) == Zero))
+                                {
+                                    If ((PCHS == One))
+                                    {
+                                        GL08 &= 0xFE
+                                    }
+                                    Else
+                                    {
+                                        WTGP (0x3C, Zero)
+                                    }
+
+                                    IDFU = Zero
+                                }
+                                Else
+                                {
+                                    If ((PCHS == One))
+                                    {
+                                        GL08 |= One
+                                    }
+                                    Else
+                                    {
+                                        WTGP (0x3C, One)
+                                    }
+
+                                    IDFU = One
+                                }
+
+                                Return (Zero)
+                            }
+                            Case (0x02)
+                            {
+                                If (((BID == 0x31) || (BID == 0x80)))
+                                {
+                                    If ((DerefOf (Arg3 [Zero]) == Zero))
+                                    {
+                                        WTGP (0x54, Zero)
+                                        IPWR = One
+                                    }
+                                    Else
+                                    {
+                                        WTGP (0x54, One)
+                                        IPWR = Zero
+                                    }
+                                }
+
+                                Return (Zero)
+                            }
+                            Default
+                            {
+                                Return (Zero)
+                            }
+
+                        }
+                    }
+                    Else
+                    {
+                        Return (Buffer (One)
+                        {
+                             0x00                                             // .
+                        })
+                    }
+                }
             }
         }
     }
@@ -16083,11 +17615,6 @@ DefinitionBlock ("", "DSDT", 2, "LENOVO", "CB-01   ", 0x00000001)
 
     Method (WAK, 1, NotSerialized)
     {
-    }
-
-    Method (B1B2, 2, NotSerialized)
-    {
-        Return ((Arg0 | (Arg1 << 0x08)))
     }
 }
 

@@ -5,13 +5,13 @@
  * 
  * Disassembling to symbolic ASL+ operators
  *
- * Disassembly of /Users/xc233/Desktop/patched/SSDT-ALL.aml, Fri Nov  2 13:36:40 2018
+ * Disassembly of SSDT-ALL.aml, Mon Nov 12 14:35:18 2018
  *
  * Original Table Header:
  *     Signature        "SSDT"
- *     Length           0x0000012C (300)
+ *     Length           0x000001B5 (437)
  *     Revision         0x02
- *     Checksum         0xB7
+ *     Checksum         0x16
  *     OEM ID           "ALL"
  *     OEM Table ID     "ALL"
  *     OEM Revision     0x00000012 (18)
@@ -48,6 +48,35 @@ DefinitionBlock ("", "SSDT", 2, "ALL", "ALL", 0x00000012)
         })
     }
 
+    Method (_SB.PCI0.HDEF._DSM, 4, NotSerialized)  // _DSM: Device-Specific Method
+    {
+        If (!Arg2)
+        {
+            Return (Buffer (One)
+            {
+                 0x03                                             // .
+            })
+        }
+
+        Return (Package (0x06)
+        {
+            "layout-id", 
+            Buffer (0x04)
+            {
+                 0x03, 0x00, 0x00, 0x00                           // ....
+            }, 
+
+            "hda-gfx", 
+            Buffer (0x0A)
+            {
+                "onboard-1"
+            }, 
+
+            "PinConfigurations", 
+            Buffer (Zero){}
+        })
+    }
+
     Scope (_SB)
     {
         Device (PNLF)
@@ -75,6 +104,15 @@ DefinitionBlock ("", "SSDT", 2, "ALL", "ALL", 0x00000012)
             "plugin-type", 
             One
         })
+    }
+
+    Method (XOSI, 1, NotSerialized)
+    {
+        Local0 = Package (0x01)
+            {
+                "Windows 2013"
+            }
+        Return ((Ones != Match (Local0, MEQ, Arg0, MTR, Zero, Zero)))
     }
 
     Device (_SB.ALS0)
