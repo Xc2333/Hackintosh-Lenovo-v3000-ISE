@@ -4,6 +4,9 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
+Change log：11/12/2018
+
+•Update Clover 4746 and use static acpi rename patch(RenameDevices seem to be wrong), fix battery patch(EC0->EC) and upload binpatch.sh for static acpi rename (DSDT.aml SSDT-2-CB-01.aml).
 
 Change log：11/1/2018
 
