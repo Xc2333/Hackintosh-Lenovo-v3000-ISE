@@ -32,6 +32,7 @@ find=($EHC1 $EHC2 $GFX0 $SAT0 $B0D3 $_DSM $_OSI $EC0)
 repl=($EH01 $EH02 $IGPU $SATA $HDAU $XDSM $XOSI $EC)
 for i in 0 1 2 3 4 5 6 7;
 do
+$binpatch ${find[i]}  ${repl[i]} DSDT.aml
 $binpatch ${find[i]}  ${repl[i]} SSDT-2-CB-01.aml
 done
 
