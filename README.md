@@ -4,6 +4,12 @@
     
 This repository is for hackintosh on Lenovo v3000.
 
+
+Change log：12/16/2018
+
+•Update Clover 4796,now use full hotpatch (battery、IRQ、DeviceModify), off course, static DSDT patches is optional.
+ Use SMCBatteryManager.kext instead of ACPIBatteryManager.kext.
+
 Change log：11/12/2018
 
 •Update Clover 4746 and use static acpi rename patch(RenameDevices seem to be wrong), fix battery patch(EC0->EC) and upload binpatch.sh for static acpi rename (DSDT.aml SSDT-2-CB-01.aml).
